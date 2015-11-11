@@ -60,6 +60,21 @@ dlldata.c
 *.svclog
 *.scc
 
+# VC Project
+*.cd
+*.filters
+*.psess
+*.sln
+*.sln.docstates
+*.suo
+*.vcxproj
+*.vcxproj.user
+*.vcproj
+*.vcproj.user
+*.vsp
+*.vspscc
+*.vssscc
+
 # Chutzpah Test files
 _Chutzpah*
 
