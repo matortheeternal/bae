@@ -8,6 +8,7 @@
 *.sln.docstates
 
 # Build results
+[Gg]enerated[Ff]iles/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
