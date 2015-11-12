@@ -554,7 +554,7 @@ BSA::BSAFolder * BSA::insertFolder( QString name )
 	if ( name.isEmpty() )
 		return &root;
 
-	name = name.replace( "\\", "/" ).toLower();
+	name = name.replace( "\\", "/" );
 
 	BSAFolder * folder = folders.value( name );
 	if ( !folder ) {
@@ -578,8 +578,6 @@ BSA::BSAFolder * BSA::insertFolder( QString name )
 
 BSA::BSAFile * BSA::insertFile( BSAFolder * folder, QString name, quint32 sizeFlags, quint64 offset )
 {
-	name = name.toLower();
-
 	BSAFile * file = new BSAFile;
 	file->sizeFlags = sizeFlags;
 	file->offset = offset;
@@ -590,8 +588,6 @@ BSA::BSAFile * BSA::insertFile( BSAFolder * folder, QString name, quint32 sizeFl
 
 BSA::BSAFile * BSA::insertFile( BSAFolder * folder, QString name, quint32 packed, quint32 unpacked, quint64 offset, F4Tex dds )
 {
-	name = name.toLower();
-
 	BSAFile * file = new BSAFile;
 	file->tex = dds;
 	file->packedLength = packed;
