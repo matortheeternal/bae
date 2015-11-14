@@ -63,9 +63,16 @@ MainWindow::~MainWindow()
 
 void MainWindow::openDlg()
 {
-	QString file = QFileDialog::getOpenFileName( this, tr( "Open File" ), "", "All Files (*.bsa *.ba2);;BSA (*.bsa);;BA2 (*.ba2)" );
-	if ( !file.isEmpty() )
-		openFile( file );
+	QStringList files = QFileDialog::getOpenFileNames( this, tr( "Open File" ), "", "All Files (*.bsa *.ba2);;BSA (*.bsa);;BA2 (*.ba2)" );
+	if ( files.count() ) {
+
+		openFile( files.takeFirst() );
+
+		while ( files.count() > 0 ) {
+			appendFile( files.takeFirst() );
+		}
+	}
+
 }
 
 void MainWindow::recurseModel( QStandardItem * item, QList<QStandardItem *> & itemList )
@@ -122,7 +129,10 @@ void MainWindow::extract()
 		if ( file.startsWith( "/" ) )
 			file.remove( 0, 1 );
 
-		if ( bsa->hasFile( file ) ) {
+		auto bsaPath = i->index().sibling( i->row(), 2 ).data( Qt::EditRole ).toString();
+
+		auto bsa = bsaHash.value( bsaPath );
+		if ( bsa && bsa->hasFile( file ) ) {
 			QByteArray data;
 
 			bsa->fileContents( file, data );
@@ -152,11 +162,24 @@ void MainWindow::extract()
 	}
 }
 
-void MainWindow::openFile( QString file )
+void MainWindow::openFile( const QString & file )
 {
 	// Clear models and connections
 	archiveModel->clear();
 	archiveProxyModel->clear();
+	archiveProxyModel->setSourceModel( emptyModel );
+	archiveView->setModel( emptyModel );
+	archiveView->setSortingEnabled( false );
+	disconnect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
+
+	archiveModel->init();
+	setWindowFilePath( file );
+
+	appendFile( file );
+}
+
+void MainWindow::appendFile( const QString & file )
+{
 	archiveProxyModel->setSourceModel( emptyModel );
 	archiveView->setModel( emptyModel );
 	archiveView->setSortingEnabled( false );
@@ -168,43 +191,33 @@ void MainWindow::openFile( QString file )
 		return;
 	}
 
-	bsa = handler->getArchive<BSA *>();
+	auto bsa = handler->getArchive<BSA *>();
 	if ( bsa ) {
 
-		auto bsaModel = static_cast<BSAModel *>(archiveModel);
-		auto bsaProxyModel = static_cast<BSAProxyModel *>(archiveProxyModel);
-
-		if ( !bsaModel || !bsaProxyModel )
-			return;
-
-		// Models
-		bsaModel->init();
+		bsaHash.insert( bsa->path(), bsa );
 
 		// Populate model from BSA
-		bsa->fillModel( bsaModel );
-
-		if ( bsaModel->rowCount() == 0 ) {
+		bsa->fillModel( archiveModel );
+		if ( archiveModel->rowCount() == 0 ) {
 			return;
 		}
-
-		setWindowFilePath( file );
 
 		// Set proxy and view only after filling source model
 		archiveProxyModel->setSourceModel( archiveModel );
 		archiveView->setModel( archiveProxyModel );
 		archiveView->setSortingEnabled( true );
-		archiveView->hideColumn( 1 );
 
 		connect( archiveModel, &BSAModel::itemChanged, this, &MainWindow::itemChanged );
 
 		archiveView->hideColumn( 1 );
+		archiveView->hideColumn( 2 );
 		archiveView->setColumnWidth( 0, 300 );
-		archiveView->setColumnWidth( 2, 50 );
+		//archiveView->setColumnWidth( 2, 50 );
 
 		// Sort proxy after model/view is populated
-		bsaProxyModel->sort( 0, Qt::AscendingOrder );
+		archiveProxyModel->sort( 0, Qt::AscendingOrder );
 		//bsaProxyModel->setFiletypes( );
-		bsaProxyModel->resetFilter();
+		archiveProxyModel->resetFilter();
 	}
 }
 

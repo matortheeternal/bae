@@ -665,8 +665,9 @@ bool BSA::scan( const BSA::BSAFolder * folder, QStandardItem * item, QString pat
 		auto folderItem = new QStandardItem( i.key() );
 		auto pathDummy = new QStandardItem( "" );
 		//auto sizeDummy = new QStandardItem( "" );
+		auto bsaDummy = new QStandardItem( "" );
 
-		item->appendRow( { folderItem, pathDummy } );
+		item->appendRow( { folderItem, pathDummy, bsaDummy } );
 		item->setCheckable( true );
 
 		// Recurse through folders
@@ -687,8 +688,9 @@ bool BSA::scan( const BSA::BSAFolder * folder, QStandardItem * item, QString pat
 				auto fileItem = new QStandardItem( f.key() );
 				auto pathItem = new QStandardItem( fullpath );
 				//auto sizeItem = new QStandardItem( "0" );
+				auto bsaItem = new QStandardItem( bsaInfo.absoluteFilePath() );
 
-				folderItem->appendRow( { fileItem, pathItem } );
+				folderItem->appendRow( { fileItem, pathItem, bsaItem } );
 				folderItem->setCheckable( true );
 				folderItem->setCheckState( Qt::Checked );
 
@@ -720,8 +722,8 @@ BSAModel::BSAModel( QObject * parent )
 
 void BSAModel::init()
 {
-	setColumnCount( 2 );
-	setHorizontalHeaderLabels( { "File", "Path" } );
+	setColumnCount( 3 );
+	setHorizontalHeaderLabels( { "File", "Path", "BSA Path" } );
 }
 
 Qt::ItemFlags BSAModel::flags( const QModelIndex & index ) const

@@ -9,6 +9,8 @@
 
 
 class BSA;
+class BSAModel;
+class BSAProxyModel;
 class ProgressDialog;
 
 namespace Ui {
@@ -22,7 +24,9 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow( QWidget * parent = nullptr );
     ~MainWindow();
-	
+
+	void openFile( const QString & filepath );
+	void appendFile( const QString & filepath );
 	void cancelExtract();
 
 protected slots:
@@ -31,20 +35,18 @@ protected slots:
 	void itemChanged( QStandardItem * item );
     
 private:
-    void openFile( QString filepath );
-	
 	void recurseModel( QStandardItem * item, QList<QStandardItem *> & itemList );
     
     Ui::MainWindow * ui;
     
     QTreeView * archiveView;
     
-    QStandardItemModel * archiveModel;
-    QSortFilterProxyModel * archiveProxyModel;
+    BSAModel * archiveModel;
+    BSAProxyModel * archiveProxyModel;
 
 	QStandardItemModel * emptyModel;
 	
-	BSA * bsa;
+	QHash<QString, BSA *> bsaHash;
 	
 	ProgressDialog * progDlg;
 	
