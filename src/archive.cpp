@@ -7,9 +7,7 @@
 #include <QMutex>
 #include <QStringList>
 
-//! \file fsengine.cpp File system engine implementations
 
-// see fsengine.h
 ArchiveHandler * ArchiveHandler::openArchive( const QString & fn )
 {
 	if ( BSA::canOpen( fn ) )

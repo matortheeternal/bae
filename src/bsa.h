@@ -118,9 +118,9 @@ struct F4BSAHeader
 // 24
 struct F4GeneralInfo
 {
-    quint32 unk00;			// 00 - hash?
+    quint32 nameHash;		// 00
     char ext[4];			// 04 - extension
-    quint32 unk08;			// 08 - hash?
+    quint32 dirHash;		// 08
     quint32 unk0C;			// 0C - flags? 00100100
     quint64 offset;			// 10 - relative to start of file
     quint32 packedSize;		// 18 - packed length (zlib)
@@ -138,8 +138,8 @@ struct F4TexInfo
 	quint8	unk0C;			// 0C
 	quint8	numChunks;		// 0D
 	quint16	chunkHeaderSize;// 0E - size of one chunk header
-	quint16	width;			// 10
-	quint16	height;			// 12
+	quint16	height;			// 10
+	quint16	width;			// 12
 	quint8	numMips;		// 14
 	quint8	format;			// 15 - DXGI_FORMAT
 	quint16	unk16;			// 16 - 0800
@@ -210,7 +210,7 @@ public:
 	//! See QFileInfo::created().
 	QDateTime fileTime( const QString & ) const override final;
 	//! See QFileInfo::absoluteFilePath().
-	QString absoluteFilePath( const QString & ) const override final;
+	QString getAbsoluteFilePath( const QString & ) const override final;
 	
 	//! Whether the given file can be opened as a %BSA or not
 	static bool canOpen( const QString & );
@@ -230,7 +230,7 @@ public:
 		quint32 packedLength = 0;
 		quint32 unpackedLength = 0;
 		
-		quint64 offset; //!< The offset of the file in the BSA
+		quint64 offset = 0; //!< The offset of the file in the BSA
 		
 		//! The size of the file inside the BSA
 		quint32 size() const;
@@ -267,7 +267,7 @@ public:
 	const BSAFile * getFile( QString fn ) const;
 
 	bool scan( const BSA::BSAFolder *, QStandardItem *, QString );
-	bool fillModel( BSAModel *, const QString & = "" );
+	bool fillModel( const BSAModel *, const QString & = "" );
 
 //signals:
 	//void progress( int num );
@@ -297,13 +297,13 @@ protected:
 	//! Error string for exception handling
 	QString status;
 	
-	qint64 numFiles;
-	int filesScanned;
+	qint64 numFiles = 0;
+	int filesScanned = 0;
 	
 	//! Whether the %BSA is compressed
-	bool compressToggle;
+	bool compressToggle = false;
 	//! Whether Fallout 3 names are prefixed with an extra string
-	bool namePrefix;
+	bool namePrefix = false;
 };
 
 class BSAModel : public QStandardItemModel

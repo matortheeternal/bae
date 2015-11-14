@@ -10,9 +10,8 @@
 #include <QFile>
 #include <QFileDialog>
 
-MainWindow::MainWindow( QWidget *parent ) :
-QMainWindow( parent ),
-ui( new Ui::MainWindow )
+MainWindow::MainWindow( QWidget *parent )
+	: QMainWindow( parent ), ui( new Ui::MainWindow )
 {
 	ui->setupUi( this );
 
@@ -216,7 +215,6 @@ void MainWindow::appendFile( const QString & file )
 
 		// Sort proxy after model/view is populated
 		archiveProxyModel->sort( 0, Qt::AscendingOrder );
-		//bsaProxyModel->setFiletypes( );
 		archiveProxyModel->resetFilter();
 	}
 }

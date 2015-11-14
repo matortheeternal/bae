@@ -99,7 +99,7 @@ QByteArray gUncompress( const QByteArray &data )
 BSA::BSA( const QString & filename )
 	: Archive(), bsa( filename ), bsaInfo( QFileInfo( filename ) ), status( "initialized" )
 {
-	bsaPath = bsaInfo.absolutePath() + "/" + bsaInfo.fileName();
+	bsaPath = bsaInfo.absoluteFilePath();
 	bsaBase = bsaInfo.absolutePath();
 	bsaName = bsaInfo.fileName();
 }
@@ -541,7 +541,7 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 	return false;
 }
 
-QString BSA::absoluteFilePath( const QString & fn ) const
+QString BSA::getAbsoluteFilePath( const QString & fn ) const
 {
 	if ( hasFile( fn ) ) {
 		return QFileInfo( this->bsaPath, fn ).absoluteFilePath();
@@ -707,9 +707,9 @@ bool BSA::scan( const BSA::BSAFolder * folder, QStandardItem * item, QString pat
 	return true;
 }
 
-bool BSA::fillModel( BSAModel * bsaModel, const QString & folder )
+bool BSA::fillModel( const BSAModel * bsaModel, const QString & folder )
 {
-	filesScanned = 0;
+	//filesScanned = 0;
 	return scan( getFolder( folder ), bsaModel->invisibleRootItem(), folder );
 }
 
