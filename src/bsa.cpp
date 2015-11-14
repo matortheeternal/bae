@@ -1,6 +1,6 @@
 #include "bsa.h"
-#include "zlib.h"
 #include "dds.h"
+#include "zlib/zlib.h"
 
 #include <QByteArray>
 #include <QDateTime>
@@ -15,7 +15,7 @@ quint32 BSA::BSAFile::size() const
 		// Skyrim and earlier
 		return sizeFlags & OB_BSAFILE_SIZEMASK;
 	}
-
+	// TODO: Not correct for texture BA2s
 	return (packedLength == 0) ? unpackedLength : packedLength;
 }
 
@@ -46,7 +46,7 @@ static bool BSAReadSizedString( QFile & bsa, QString & s )
 	}
 }
 
-QByteArray gUncompress( const QByteArray &data )
+QByteArray gUncompress( const QByteArray & data, const int size )
 {
 	if ( data.size() <= 4 ) {
 		qWarning( "gUncompress: Input data is truncated" );
@@ -64,10 +64,11 @@ QByteArray gUncompress( const QByteArray &data )
 	strm.zalloc = Z_NULL;
 	strm.zfree = Z_NULL;
 	strm.opaque = Z_NULL;
-	strm.avail_in = data.size();
+	strm.avail_in = size;
 	strm.next_in = (Bytef*)(data.data());
 
 	ret = inflateInit2( &strm, 15 + 32 ); // gzip decoding
+	Q_ASSERT( ret == Z_OK );
 	if ( ret != Z_OK )
 		return QByteArray();
 
@@ -247,8 +248,6 @@ bool BSA::open()
 
 			if ( version == F3_BSAHEADER_VERSION ) {
 				namePrefix = header.ArchiveFlags & F3_BSAARCHIVE_PREFIXFULLFILENAMES;
-			} else {
-				namePrefix = false;
 			}
 
 			if ( !bsa.seek( header.FolderRecordOffset + header.FolderNameLength + header.FolderCount * (1 + sizeof( OBBSAFolderInfo )) + header.FileCount * sizeof( OBBSAFileInfo ) ) )
@@ -287,8 +286,6 @@ bool BSA::open()
 
 
 				BSAFolder * folder = insertFolder( folderName );
-
-				qDebug() << folderName;
 
 				quint32 fcnt = folderInfo.fileCount;
 				totalFileCount += fcnt;
@@ -422,16 +419,44 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 
 			content.resize( filesz );
 			if ( ok && bsa.read( content.data(), filesz ) == filesz ) {
-				if ( file->sizeFlags > 0 ) {
+				if ( file->sizeFlags > 0 && (file->compressed() ^ compressToggle) ) {
 					// BSA
-					if ( file->compressed() ^ compressToggle )
-						content = gUncompress( content );
-				} else if ( file->packedLength > 0 ) {
-					// BA2
-					content = gUncompress( content );
-				}
+#ifndef QT_NO_DEBUG
+					QByteArray tmp( content );
+					char a = tmp[0];
+					char b = tmp[1];
+					tmp[0] = tmp[3];
+					tmp[3] = a;
+					tmp[1] = tmp[2];
+					tmp[2] = b;
 
-				if ( file->tex.chunks.count() ) {
+					QByteArray tmp2( content );
+					tmp2.remove( 0, 4 );
+
+					Q_ASSERT( qUncompress( tmp ) == gUncompress( tmp2, filesz - 4 ) );
+#endif
+					content.remove( 0, 4 );
+					QByteArray tmp3( content );
+
+					content = gUncompress( tmp3, filesz - 4 );
+
+				} else if ( file->packedLength > 0 && !file->tex.chunks.count() ) {
+					// General BA2
+					QByteArray tmp( content );
+					content.resize( file->unpackedLength );
+					
+#ifndef QT_NO_DEBUG
+					QByteArray tmp2( content );
+					int f = file->packedLength;
+					char s[4] = { ((f >> 24) & 0xFF), ((f >> 16) & 0xFF), ((f >> 8) & 0xFF), ((f >> 0) & 0xFF) };
+
+					tmp2.prepend( s, 4 );
+
+					Q_ASSERT( qUncompress( tmp2 ) == gUncompress( tmp, file->packedLength ) );
+#endif
+
+					content = gUncompress( tmp, file->packedLength );
+				} else if ( file->tex.chunks.count() ) {
 					// Fill DDS Header
 					DDS_HEADER ddsHeader = { 0 };
 
@@ -504,34 +529,40 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 					char buf[sizeof( ddsHeader )];
 					memcpy( buf, &ddsHeader, sizeof( ddsHeader ) );
 
-					// Prepend DDS Header
-					content.prepend( QByteArray::fromRawData( buf, sizeof( ddsHeader ) ) );
-					content.prepend( QByteArray::fromStdString( "DDS " ) );
+					int texSize = 0; // = file->unpackedLength;
+					int hdrSize = sizeof( ddsHeader ) + 4;
 
-					// Start at 2nd chunk
-					for ( int i = 1; i < file->tex.chunks.count(); i++ ) {
+					content.clear();
+					content.append( QByteArray::fromStdString( "DDS " ) );
+					content.append( QByteArray::fromRawData( buf, sizeof( ddsHeader ) ) );
+					Q_ASSERT( content.size() == hdrSize );
+
+					// Start at 1st chunk now
+					for ( int i = 0; i < file->tex.chunks.count(); i++ ) {
 						F4TexChunk chunk = file->tex.chunks[i];
 						if ( bsa.seek( chunk.offset ) ) {
 							QByteArray chunkData;
 
 							if ( chunk.packedSize > 0 ) {
 								chunkData.resize( chunk.packedSize );
-								if ( bsa.read( chunkData.data(), chunk.packedSize ) == chunk.packedSize )
-									chunkData = gUncompress( chunkData );
+								if ( bsa.read( chunkData.data(), chunk.packedSize ) == chunk.packedSize ) {
+									chunkData = gUncompress( chunkData, chunk.packedSize );
 
-								if ( chunkData.size() != chunk.unpackedSize )
-									qCritical() << "Size does not match at " << chunk.offset;
-
-							} else {
-								chunkData.resize( chunk.unpackedSize );
-								if ( !(bsa.read( chunkData.data(), chunk.unpackedSize ) == chunk.unpackedSize) )
+									if ( chunkData.size() != chunk.unpackedSize )
+										qCritical() << "Size does not match at " << chunk.offset;
+								}
+							} else if ( !(bsa.read( chunkData.data(), chunk.unpackedSize ) == chunk.unpackedSize) ) {
 									qCritical() << "Size does not match at " << chunk.offset;
 							}
+							texSize += chunk.unpackedSize;
+
 							content.append( chunkData );
+							//Q_ASSERT( content.size() - hdrSize == texSize );
 						} else {
 							qCritical() << "Seek error";
 						}
 					}
+
 				}
 
 				return true;
@@ -712,7 +743,6 @@ bool BSA::fillModel( const BSAModel * bsaModel, const QString & folder )
 	//filesScanned = 0;
 	return scan( getFolder( folder ), bsaModel->invisibleRootItem(), folder );
 }
-
 
 BSAModel::BSAModel( QObject * parent )
 	: QStandardItemModel( parent )
