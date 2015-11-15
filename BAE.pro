@@ -11,6 +11,12 @@ CONFIG += c++11 zlib
 
 INCLUDEPATH += src lib
 
+CONFIG(debug, debug|release) {
+	# Debug Options
+	BUILD = debug
+	CONFIG += console
+}
+
 ###############################
 ## PROJECT SCOPES
 ###############################
