@@ -452,7 +452,7 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 
 					tmp2.prepend( s, 4 );
 
-					Q_ASSERT( qUncompress( tmp2 ) == gUncompress( tmp, file->packedLength ) );
+					//Q_ASSERT( qUncompress( tmp2 ) == gUncompress( tmp, file->packedLength ) );
 #endif
 
 					content = gUncompress( tmp, file->packedLength );
