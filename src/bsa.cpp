@@ -467,6 +467,9 @@ bool BSA::fileContents( const QString & fn, QByteArray & content )
 					ddsHeader.dwMipMapCount = file->tex.header.numMips;
 					ddsHeader.ddspf.dwSize = sizeof( DDS_PIXELFORMAT );
 					ddsHeader.dwSurfaceFlags = DDS_SURFACE_FLAGS_TEXTURE | DDS_SURFACE_FLAGS_MIPMAP;
+					
+					if ( file->tex.header.unk16 == 2049 )
+						ddsHeader.dwCubemapFlags = DDS_CUBEMAP_ALLFACES;
 
 					bool ok = true;
 
